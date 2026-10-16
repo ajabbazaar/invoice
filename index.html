@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AJAB BAZAAR — Invoice Generator</title>
+<style>
+  :root{--orange:#f45b0b;--dark:#171717;--cream:#fff8f1;--line:#f2c9ad;--muted:#686868}
+  *{box-sizing:border-box}
+  body{margin:0;background:#f1f1f1;color:#171717;font:14px/1.45 Arial,Helvetica,sans-serif}
+  .app{max-width:1180px;margin:22px auto;padding:0 14px}
+  .topbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+  .topbar h1{font-size:22px;margin:0}.topbar p{margin:3px 0;color:#666}
+  .actions{display:flex;gap:8px;flex-wrap:wrap}
+  button{border:0;border-radius:8px;padding:10px 14px;font-weight:700;cursor:pointer}
+  .primary{background:var(--orange);color:#fff}.secondary{background:var(--dark);color:#fff}.light{background:#fff;border:1px solid #ddd}
+  .editor{background:#fff;border-radius:12px;padding:18px;margin-bottom:18px;box-shadow:0 3px 18px #0000000a}
+  .editor h2{font-size:16px;margin:0 0 12px;color:var(--orange)}
+  .formgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+  label{display:block;font-size:12px;font-weight:700;color:#555;margin-bottom:5px}
+  input,textarea,select{width:100%;border:1px solid #d8d8d8;border-radius:7px;padding:9px;font:inherit;background:#fff}
+  textarea{resize:vertical;min-height:65px}
+  .field-wide{grid-column:span 2}.field-full{grid-column:1/-1}
+  .items-editor{width:100%;border-collapse:collapse;margin:8px 0}
+  .items-editor th,.items-editor td{padding:6px;border-bottom:1px solid #eee;text-align:left}
+  .items-editor th{font-size:12px;color:#555}
+  .items-editor input{min-width:65px;padding:8px}
+  .items-editor .desc{min-width:150px}
+  .remove{background:#fff0e8;color:#b63a00;padding:7px 10px}
+  .invoice{background:#fff;max-width:850px;margin:0 auto;box-shadow:0 4px 24px #00000012;overflow:hidden}
+  .inv-head{padding:24px 28px 18px;background:linear-gradient(120deg,#fff8f1,#fff);border-bottom:3px solid var(--orange)}
+  .brandrow{display:flex;justify-content:space-between;gap:20px;align-items:flex-start}
+  .brand{display:flex;gap:12px;align-items:center}
+  .logo{width:80px;height:80px;object-fit:contain;border-radius:50%;background:#fff;border:0;display:block;flex-shrink:0}
+  .qr-panel{display:flex;align-items:center;gap:12px;flex-wrap:wrap;border:1px solid #f4d8c2;border-radius:9px;background:#fff8f1;padding:10px;margin-bottom:10px}
+  .qr-panel img{width:112px;height:112px;object-fit:contain;background:#fff;border:1px solid #eee}
+  .qr-copy{font-size:12px;line-height:1.5}.qr-copy strong{display:block;color:var(--orange);font-size:14px}
+  .sign-image{display:block;width:120px;max-height:54px;object-fit:contain;object-position:right center;margin-left:auto}
+  .warranty h3,.warranty>p,.warranty #vWarrantyDetails{margin-left:87px}.warranty:after{content:"";display:block;clear:both}
+  .warranty .badge{float:none;position:relative;z-index:1;margin:0 12px 5px 0;border:3px solid #fbbf24;border-radius:50%;width:75px;height:75px;display:flex;align-items:center;justify-content:center;text-align:center;color:#ffd35a;font-size:14px;font-weight:900;float:left;shape-outside:circle(50%)}
+  .brandname{font-size:31px;font-weight:900;letter-spacing:.5px;line-height:1.05}.brandname span{color:var(--orange)}
+  .tagline{font-size:10px;letter-spacing:2.5px;font-weight:700;margin-top:5px}
+  .services{font-size:10px;margin-top:12px;color:#333;letter-spacing:.2px}
+  .company-contact{background:var(--dark);color:#fff;border-bottom:5px solid var(--orange);border-radius:0 0 0 24px;padding:13px 15px;min-width:220px;font-size:11px;white-space:pre-line}
+  .inv-title-row{display:flex;justify-content:space-between;gap:18px;align-items:flex-end;margin-top:22px}
+  .invoice-word{font-size:42px;font-weight:900;letter-spacing:-1px;color:var(--orange);line-height:1}
+  .invoice-word span{color:#111}
+  .meta{font-size:11px;background:#fff1e6;border-radius:10px;padding:10px 13px;min-width:260px}
+  .meta div{display:grid;grid-template-columns:100px 10px 1fr;gap:5px;margin:4px 0}
+  .meta b{font-weight:700}
+  .billbox{margin:14px 24px 10px;border:1.5px solid var(--orange);border-radius:10px;overflow:hidden}
+  .bill-label{display:inline-block;background:var(--orange);color:#fff;font-weight:800;padding:4px 15px;border-radius:0 0 9px 0}
+  .billcontent{display:grid;grid-template-columns:1fr 1fr;gap:0;padding:8px 14px 14px}
+  .billcontent>div{padding:3px 10px}.billcontent>div+div{border-left:1px solid var(--line)}
+  .customer-name{font-size:20px;font-weight:800;color:#b51c16;margin-bottom:5px;overflow-wrap:anywhere}
+  .invoice-table-wrap{padding:0 24px}
+  .invoice-table{width:100%;border-collapse:collapse;font-size:11px}
+  .invoice-table thead{background:#202020;color:#fff}
+  .invoice-table th{padding:9px 6px;text-align:left}
+  .invoice-table th:last-child{background:var(--orange)}
+  .invoice-table td{padding:10px 6px;border-bottom:1px solid #f2d6c3;vertical-align:top}
+  .invoice-table tbody tr:nth-child(even){background:#fffaf6}
+  .invoice-table .num,.invoice-table .qty,.invoice-table .money{text-align:center;white-space:nowrap}
+  .item-title{font-weight:800;font-size:12px}.spec{color:#555;white-space:pre-line;margin-top:3px}
+  .totals-area{display:grid;grid-template-columns:1fr 280px;gap:14px;padding:12px 24px 14px;align-items:start}
+  .words{border:1px solid #f4d8c2;border-radius:9px;background:#fff8f1;padding:13px}
+  .words strong{display:block;margin-top:4px;font-size:13px}
+  .totals{width:100%;border-collapse:collapse;font-size:12px}
+  .totals td{padding:7px 9px;border-bottom:1px solid #eee}
+  .totals td:first-child{background:#242424;color:#fff}
+  .totals td:last-child{text-align:right;font-weight:700}
+  .totals tr.grand td{background:var(--orange);color:#fff;font-size:15px;font-weight:900;border:0}
+  .lower{display:grid;grid-template-columns:1.3fr 1fr;gap:12px;padding:0 24px 15px}
+  .warranty{background:#1b1b1b;color:#fff;border:2px solid var(--orange);border-radius:12px;padding:13px}
+  .warranty h3{margin:0 0 8px;color:#ff861e;font-size:17px}.warranty p{margin:4px 0;font-size:10px}
+  .warranty .badge{float:left;margin:0 12px 5px 0;border:3px solid #fbbf24;border-radius:50%;width:75px;height:75px;display:flex;align-items:center;justify-content:center;text-align:center;color:#ffd35a;font-size:14px;font-weight:900}
+  .terms h3{font-size:13px;margin:0 0 7px}.terms{background:#fff8f1;border:1px solid #f2d0b6;border-radius:10px;padding:12px;font-size:10px}
+  .terms p{margin:4px 0}
+  .signature{text-align:right;padding:0 28px 14px;font-size:11px}
+  .signline{display:inline-block;border-bottom:1px solid #222;padding:8px 15px 3px;font-style:italic;font-size:17px}
+  .footer{background:#171717;color:#fff;padding:15px 25px;border-top:5px solid var(--orange);display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+  .thanks{font-family:Georgia,serif;font-style:italic;font-size:17px}.thanks b{display:block;font:900 19px Arial;margin-top:2px}.thanks span{color:var(--orange)}
+  .footerbits{display:flex;gap:12px;flex-wrap:wrap;font-size:10px}.footerbits span{border-left:1px solid #666;padding-left:10px}
+  .muted{color:#666}
+  @media(max-width:700px){.formgrid{grid-template-columns:1fr 1fr}.field-wide{grid-column:span 2}.brandrow,.inv-title-row{flex-direction:column;align-items:stretch}.company-contact{border-radius:10px;min-width:0}.brandname{font-size:26px}.invoice-word{font-size:36px}.billcontent,.totals-area,.lower{grid-template-columns:1fr}.billcontent>div+div{border-left:0;border-top:1px solid var(--line);margin-top:8px;padding-top:10px}.invoice-table-wrap{overflow-x:auto}.invoice-table{min-width:650px}.meta{min-width:0}.app{padding:0 8px}}
+  @page{size:A4;margin:8mm}
+  @media print{
+    body{background:#fff;font-size:10px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+    .app{max-width:none;margin:0;padding:0}.topbar,.editor,.no-print{display:none!important}
+    .invoice{max-width:none;box-shadow:none;width:100%;overflow:visible}
+    .inv-head{padding:15px 18px 12px}.logo{width:65px;height:65px}.brandname{font-size:26px}
+    .company-contact{font-size:9px;min-width:190px;padding:10px}
+    .inv-title-row{margin-top:14px}.invoice-word{font-size:34px}.meta{font-size:9px;padding:7px 10px;min-width:235px}
+    .billbox{margin:10px 16px 8px}.billcontent{padding:5px 10px 9px}.customer-name{font-size:17px}
+    .invoice-table-wrap{padding:0 16px}.invoice-table{font-size:9px}.invoice-table td{padding:7px 5px}.invoice-table th{padding:7px 5px}
+    .totals-area{padding:8px 16px 10px;grid-template-columns:1fr 245px;gap:10px}.words{padding:10px}.qr-panel{padding:7px;gap:8px}.qr-panel img{width:85px;height:85px}.qr-copy{font-size:9px}.qr-copy strong{font-size:11px}.sign-image{width:100px;max-height:42px}
+    .lower{padding:0 16px 10px;gap:8px}.warranty{padding:10px}.terms{padding:9px}
+    .signature{padding:0 18px 10px}.footer{padding:11px 18px}
+    .invoice-table tr,.billbox,.totals-area,.lower,.words,.totals{break-inside:avoid}
+  }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <div><h1>AJAB BAZAAR — Invoice Generator</h1><p>Fill in the form; the invoice preview updates automatically. Print or save as PDF.</p></div>
+    <div class="actions">
+      <button class="light" type="button" onclick="resetForm()">Reset Form</button>
+      <button class="secondary" type="button" onclick="window.print()">Print / Save PDF</button>
+      <button class="primary" type="button" onclick="downloadHTML()">Download HTML Copy</button>
+    </div>
+  </div>
+  <section class="editor">
+    <h2>1. Company Details</h2>
+    <div class="formgrid">
+      <div><label>Company / Brand Name</label><input id="company" value="AJAB BAZAAR"></div>
+      <div><label>Phone / WhatsApp</label><input id="companyPhone" value="+91 7601952219, +91 7319429434"></div>
+      <div><label>Email</label><input id="companyEmail" value="ajabbazaar@gmail.com"></div>
+      <div class="field-wide"><label>Company Address</label><textarea id="companyAddress">Paschim Naichanpur, Moyna, Purba Medinipur, West Bengal - 721642</textarea></div>
+      <div><label>Tagline</label><input id="tagline" value="Customize Gifts & Signage Solution"></div>
+    </div>
+  </section>
+  <section class="editor">
+    <h2>2. Invoice & Customer Details</h2>
+    <div class="formgrid">
+      <div><label>Order ID / Invoice No.</label><input id="orderId"></div>
+      <div><label>Invoice Date</label><input id="date" type="date"></div>
+      <div><label>Invoice Time</label><input id="time" type="time"></div>
+      <div><label>Customer / Company Name</label><input id="customer" placeholder="Enter customer or company name"></div>
+      <div><label>Customer Phone</label><input id="customerPhone" placeholder="Enter phone number"></div>
+      <div><label>Payment Terms</label><input id="payment" value="Advance / As Agreed"></div>
+      <div class="field-full"><label>Customer Address / Business Details</label><textarea id="customerAddress" placeholder="Enter customer address and details"></textarea></div>
+    </div>
+  </section>
+  <section class="editor">
+    <h2>3. Products / Services</h2>
+    <div style="overflow-x:auto">
+      <table class="items-editor">
+        <thead><tr><th>Product / Service</th><th>Size / Specification</th><th>Qty</th><th>Rate (₹)</th><th>Amount</th><th></th></tr></thead>
+        <tbody id="itemInputs"></tbody>
+      </table>
+    </div>
+    <div class="actions">
+      <button class="light" type="button" onclick="addItem()">+ Add Product</button>
+      <button class="light" type="button" onclick="removeLastItem()">Remove Last Product</button>
+    </div>
+    <div class="formgrid" style="margin-top:14px">
+      <div><label>Discount (₹)</label><input id="discount" type="number" min="0" step="0.01" value="0"></div>
+      <div><label>Tax / GST (₹, optional)</label><input id="tax" type="number" min="0" step="0.01" value="0"></div>
+      <div><label>Advance Paid (₹)</label><input id="advance" type="number" min="0" step="0.01" value="0"></div>
+    </div>
+  </section>
+  <section class="editor">
+    <h2>4. Warranty & Terms</h2>
+    <div class="formgrid">
+      <div><label>Warranty Heading</label><input id="warrantyTitle" value="WARRANTY DISCLAIMER"></div>
+      <div><label>Warranty Duration</label><input id="warrantyDuration" value="1 YEAR WARRANTY"></div>
+      <div><label>Warranty Coverage</label><input id="warrantyCoverage" value="Warranty only for Light and Adapter."></div>
+      <div class="field-full"><label>Warranty Details (one point per line)</label><textarea id="warrantyDetails">1 Year warranty is applicable only for LED Light and Adapter.
+Warranty does not cover physical damage, water damage, burnt, misuse, or electrical fluctuation.
+Acrylic, ACP, frame, wiring and other parts are not covered under warranty.
+Installation and site-related issues are not covered.
+After warranty period, service will be chargeable.</textarea></div>
+      <div class="field-full"><label>Terms & Conditions (one point per line)</label><textarea id="terms">This is an estimate/invoice for the above-mentioned work.
+Design, material and size will be as per discussion.
+Any additional work will be charged separately.
+Delivery and installation time will be as per confirmation.
+Price is valid for this quotation only.
+Subject to Purba Medinipur (West Bengal) jurisdiction.</textarea></div>
+      <div><label>Footer Note</label><input id="footerNote" value="All India Delivery Available | Quality Assurance | Customized Designs | Customer Support"></div>
+    </div>
+  </section>
+
+  <article class="invoice" id="invoice">
+    <header class="inv-head">
+      <div class="brandrow">
+        <div>
+          <div class="brand"><img class="logo" id="vLogo" src="logo.png" alt="AJAB BAZAAR logo"><div><div class="brandname" id="vCompany">AJAB <span>BAZAAR</span></div><div class="tagline" id="vTagline">CUSTOMIZE GIFTS & SIGNAGE SOLUTION</div></div></div>
+          <div class="services">♧ Customized Gifts　│　▣ Sign Board & Branding　│　▤ Printing Solutions　│　♧ LED & Neon Products　│　Creative Designs</div>
+        </div>
+        <div class="company-contact"><div id="vCompanyAddress"></div><div style="margin-top:7px" id="vCompanyPhone"></div><div style="margin-top:5px" id="vCompanyEmail"></div></div>
+      </div>
+      <div class="inv-title-row">
+        <div><div class="invoice-word"><span>IN</span>VOICE</div><div style="font-size:9px;letter-spacing:2px;margin-top:5px" id="vTagline2">CUSTOMIZE GIFTS & SIGNAGE SOLUTION</div></div>
+        <div class="meta">
+          <div><b>Invoice No.</b><span>:</span><span id="vOrderId"></span></div>
+          <div><b>Invoice Date</b><span>:</span><span id="vDate"></span></div>
+          <div><b>Invoice Time</b><span>:</span><span id="vTime"></span></div>
+          <div><b>Payment Terms</b><span>:</span><span id="vPayment"></span></div>
+        </div>
+      </div>
+    </header>
+    <section class="billbox">
+      <div class="bill-label">BILLED TO</div>
+      <div class="billcontent">
+        <div><div class="customer-name" id="vCustomer">Customer / Company Name</div><div id="vCustomerAddress" class="spec">Customer address / company details</div></div>
+        <div><div style="font-weight:700;margin:4px 0">☎ <span id="vCustomerPhone">Customer Phone</span></div><div class="muted" id="vCustomerExtra"></div></div>
+      </div>
+    </section>
+    <div class="invoice-table-wrap">
+      <table class="invoice-table">
+        <thead><tr><th style="width:6%">SL.</th><th style="width:43%">ITEM DESCRIPTION</th><th style="width:24%">SIZE / SPECIFICATION</th><th style="width:8%;text-align:center">QTY</th><th style="width:10%;text-align:center">RATE (₹)</th><th style="width:11%;text-align:center">AMOUNT (₹)</th></tr></thead>
+        <tbody id="vItems"></tbody>
+      </table>
+    </div>
+    <section class="totals-area">
+      <div>
+        <div class="qr-panel">
+          <img id="vUpiQr" alt="UPI payment QR code" src="">
+          <div class="qr-copy"><strong>SCAN TO PAY</strong><div>UPI Payment</div><div id="vQrAmount">Amount: ₹0.00</div><small>AJAB BAZAAR</small></div>
+        </div>
+        <div class="words">Amount in Words:<strong id="vWords">Rupees Zero Only.</strong></div>
+      </div>
+      <table class="totals">
+        <tr><td>Subtotal</td><td id="vSubtotal">₹0.00</td></tr>
+        <tr><td>Discount (₹)</td><td id="vDiscount">₹0.00</td></tr>
+        <tr><td>Tax / GST (₹)</td><td id="vTax">₹0.00</td></tr>
+        <tr class="grand"><td>GRAND TOTAL (₹)</td><td id="vGrand">₹0.00</td></tr>
+        <tr><td>Advance Paid</td><td id="vAdvance">₹0.00</td></tr>
+        <tr><td>Balance Due</td><td id="vDue">₹0.00</td></tr>
+      </table>
+    </section>
+    <section class="lower">
+      <div class="warranty"><div class="badge" id="vWarrantyDuration">1 YEAR<br>WARRANTY</div><h3 id="vWarrantyTitle">WARRANTY DISCLAIMER</h3><p id="vWarrantyCoverage">Warranty only for Light and Adapter.</p><div id="vWarrantyDetails"></div></div>
+      <div class="terms"><h3>▣ Terms & Conditions</h3><div id="vTerms"></div></div>
+    </section>
+    <div class="signature">For, <b id="vSignCompany">AJAB BAZAAR</b><br><img class="sign-image" src="sign.png" alt="Authorized signature"><br>Authorized Signatory</div>
+    <footer class="footer"><div class="thanks">Thank You for Choosing <b id="vFooterCompany">AJAB <span>BAZAAR</span></b></div><div class="footerbits" id="vFooterNote"><span>All India Delivery Available</span><span>Quality Assurance</span><span>Customized Designs</span><span>Customer Support</span></div></footer>
+  </article>
+</div>
+<script>
+const $=id=>document.getElementById(id);
+const fields=['company','companyPhone','companyEmail','companyAddress','tagline','orderId','date','time','customer','customerPhone','payment','customerAddress','discount','tax','advance','warrantyTitle','warrantyDuration','warrantyCoverage','warrantyDetails','terms','footerNote'];
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function money(n){return '₹'+Number(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});}
+function setText(id,val){$(id).textContent=val;}
+function todayLocal(){const d=new Date();return {date:`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`,time:`${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`};}
+function newOrderId(){const d=new Date();return 'AJAB/'+String(d.getFullYear())+'/'+String(d.getMonth()+1).padStart(2,'0')+'/'+String(d.getDate()).padStart(2,'0')+'-'+String(d.getHours()).padStart(2,'0')+String(d.getMinutes()).padStart(2,'0');}
+function addItem(name='',spec='',qty=1,rate=0){
+ const tr=document.createElement('tr');tr.className='item-row';
+ tr.innerHTML=`<td><input class="desc" data-k="name" placeholder="Product / service" value="${esc(name)}"></td><td><input class="desc" data-k="spec" placeholder="Size / details" value="${esc(spec)}"></td><td><input data-k="qty" type="number" min="0" step="any" value="${qty}"></td><td><input data-k="rate" type="number" min="0" step="0.01" value="${rate}"></td><td class="row-amount">₹0.00</td><td><button type="button" class="remove" aria-label="Remove item">×</button></td>`;
+ tr.querySelectorAll('input').forEach(i=>i.addEventListener('input',render));
+ tr.querySelector('.remove').addEventListener('click',()=>{tr.remove();render();});
+ $('itemInputs').appendChild(tr);render();
+}
+function removeLastItem(){const rows=$('itemInputs').querySelectorAll('.item-row');if(rows.length>1)rows[rows.length-1].remove();render();}
+function num(id){return Math.max(0,Number($(id).value)||0);}
+function items(){return [...$('itemInputs').querySelectorAll('.item-row')].map(tr=>{const v=k=>tr.querySelector(`[data-k="${k}"]`).value;return {name:v('name'),spec:v('spec'),qty:Math.max(0,Number(v('qty'))||0),rate:Math.max(0,Number(v('rate'))||0)};});}
+function rupeesWords(n){
+ n=Math.round(Math.max(0,n));if(n===0)return 'Rupees Zero Only.';
+ const ones=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'];
+ const tens=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+ function two(x){if(x<20)return ones[x];return tens[Math.floor(x/10)]+(x%10?' '+ones[x%10]:'');}
+ function three(x){return (x>=100?ones[Math.floor(x/100)]+' Hundred'+(x%100?' ':''):'')+(x%100?two(x%100):'');}
+ let out=[];const units=[[10000000,'Crore'],[100000,'Lakh'],[1000,'Thousand'],[1,'']];
+ for(const [v,label] of units){if(n>=v){const q=Math.floor(n/v);out.push(three(q)+(label?' '+label:''));n%=v;}}
+ return 'Rupees '+out.join(' ')+' Only.';
+}
+function updateUpiQr(amount){
+  // QR image is generated from the live balance due. Requires internet for the QR image service.
+  const pa='Q715591950@ybl', pn='AJAB BAZAAR', tr='AJAB959488', tn='Order Payment';
+  const upi='upi://pay?pa='+encodeURIComponent(pa)+'&pn='+encodeURIComponent(pn.replace(/ /g,'+'))+'&am='+encodeURIComponent(Math.max(0,amount).toFixed(2))+'&cu=INR&tr='+encodeURIComponent(tr)+'&tn='+encodeURIComponent(tn.replace(/ /g,'+'));
+  $('vUpiQr').src='https://api.qrserver.com/v1/create-qr-code/?size=220x220&data='+encodeURIComponent(upi);
+  setText('vQrAmount','Amount: '+money(amount));
+}
+function render(){
+ const company=$('company').value.trim()||'Company Name', tagline=$('tagline').value.trim();
+ setText('vCompany',company);setText('vSignCompany',company);setText('vFooterCompany',company);setText('vTagline',tagline.toUpperCase());setText('vTagline2',tagline.toUpperCase());
+ setText('vLogo',company.split(/\s+/).map(x=>x[0]||'').join('').slice(0,3).toUpperCase());
+ setText('vCompanyAddress',$('companyAddress').value);setText('vCompanyPhone','☎ '+$('companyPhone').value);setText('vCompanyEmail','✉ '+$('companyEmail').value);
+ setText('vOrderId',$('orderId').value);setText('vDate',$('date').value);setText('vTime',$('time').value);setText('vPayment',$('payment').value);
+ setText('vCustomer',$('customer').value.trim()||'Customer / Company Name');setText('vCustomerPhone',$('customerPhone').value||'Customer Phone');setText('vCustomerAddress',$('customerAddress').value||'Customer address / company details');
+ const its=items();let subtotal=0;
+ $('vItems').innerHTML=its.map((it,i)=>{const amount=it.qty*it.rate;subtotal+=amount;const row=$('itemInputs').querySelectorAll('.item-row')[i];row.querySelector('.row-amount').textContent=money(amount);return `<tr><td class="num">${String(i+1).padStart(2,'0')}</td><td><div class="item-title">${esc(it.name||'Product / Service')}</div></td><td><div class="spec">${esc(it.spec||'—')}</div></td><td class="qty">${it.qty}</td><td class="money">${money(it.rate)}</td><td class="money"><b>${money(amount)}</b></td></tr>`;}).join('');
+ const discount=Math.min(num('discount'),subtotal),tax=num('tax'),grand=Math.max(0,subtotal-discount+tax),advance=num('advance'),due=grand-advance;
+ setText('vSubtotal',money(subtotal));setText('vDiscount',money(discount));setText('vTax',money(tax));setText('vGrand',money(grand));setText('vAdvance',money(advance));setText('vDue',money(due));setText('vWords',rupeesWords(grand));updateUpiQr(Math.max(0,due));
+ setText('vWarrantyTitle',$('warrantyTitle').value);setText('vWarrantyDuration',$('warrantyDuration').value.replace(/\s+/g,' ').trim());setText('vWarrantyCoverage',$('warrantyCoverage').value);
+ $('vWarrantyDetails').innerHTML=$('warrantyDetails').value.split('\n').filter(Boolean).map(x=>`<p>✓ ${esc(x.replace(/^\s*\d+[\.\)]\s*/,''))}</p>`).join('');
+ $('vTerms').innerHTML=$('terms').value.split('\n').filter(Boolean).map(x=>`<p>▸ ${esc(x.replace(/^\s*[-•▸]\s*/,''))}</p>`).join('');
+$('vFooterNote').innerHTML=$('footerNote').value.split('|').map(x=>`<span>${esc(x.trim())}</span>`).join('');
+}
+function resetForm(){if(!confirm('Reset all invoice fields and products?'))return;fields.forEach(id=>{const el=$(id);if(el.tagName==='TEXTAREA'||el.tagName==='INPUT')el.value='';});$('discount').value='0';$('tax').value='0';$('advance').value='0';$('payment').value='Advance / As Agreed';$('company').value='AJAB BAZAAR';$('companyPhone').value='+91 7601952219, +91 7319429434';$('companyEmail').value='ajabbazaar@gmail.com';$('companyAddress').value='Paschim Naichanpur, Moyna, Purba Medinipur, West Bengal - 721642';$('tagline').value='Customize Gifts & Signage Solution';$('warrantyTitle').value='WARRANTY DISCLAIMER';$('warrantyDuration').value='1 YEAR WARRANTY';$('warrantyCoverage').value='Warranty only for Light and Adapter.';$('warrantyDetails').value='1 Year warranty is applicable only for LED Light and Adapter.\nWarranty does not cover physical damage, water damage, burnt, misuse, or electrical fluctuation.\nAcrylic, ACP, frame, wiring and other parts are not covered under warranty.\nInstallation and site-related issues are not covered.\nAfter warranty period, service will be chargeable.';$('terms').value='This is an estimate/invoice for the above-mentioned work.\nDesign, material and size will be as per discussion.\nAny additional work will be charged separately.\nDelivery and installation time will be as per confirmation.\nPrice is valid for this quotation only.\nSubject to Purba Medinipur (West Bengal) jurisdiction.';$('footerNote').value='All India Delivery Available | Quality Assurance | Customized Designs | Customer Support';$('customer').value='';$('customerPhone').value='';$('customerAddress').value='';$('itemInputs').innerHTML='';const dt=todayLocal();$('date').value=dt.date;$('time').value=dt.time;$('orderId').value=newOrderId();addItem();addItem();render();}
+function downloadHTML(){const blob=new Blob(['<!DOCTYPE html>\n'+document.documentElement.outerHTML],{type:'text/html;charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='AJAB_BAZAAR_Invoice_Generator.html';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+fields.forEach(id=>$(id).addEventListener('input',render));
+const dt=todayLocal();$('date').value=dt.date;$('time').value=dt.time;$('orderId').value=newOrderId();addItem();addItem();render();
+</script>
+</body>
+</html>
